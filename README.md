@@ -2,10 +2,16 @@
 
 airport-a5 is a Command Line Interface to download french airport documents. It generates the A5 paper format.
 
-## Dowload one  airport
+## Dowload one airport
 
 ```bash
-./airport-a5.sh --oaci LFRN
+./airport-a5.sh --oaci LFRN --oaci LFRT
+```
+
+to generate the a5 paper format:
+
+```bash
+./airport-a5.sh --oaci LFRN --a5
 ```
 
 ## Download many airports
@@ -29,4 +35,10 @@ airport-a5 is a Command Line Interface to download french airport documents. It 
 
 ```bash
 ./airport-a5.sh --json ./list.json
+```
+
+3 - with A5 format paper:
+
+```bash
+./airport-a5.sh --json ./list.json --a5
 ```

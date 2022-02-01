@@ -26,13 +26,21 @@ fi
 URL_PREFIX=`curl -qs https://www.sia.aviation-civile.gouv.fr/documents/htmlshow\?f\=dvd/eAIP_27_JAN_2022/Atlas-VAC/home.htm |grep www.sia.aviation-civile.gouv.fr/dvd | sed -e "s/.*https/https/" | sed -e s"%FR/home.htm.*%%"`
 
 
+function toA5() {
+    # toA5 from to
+    pdfjam --quiet --outfile "$1" --paper a5paper "$2"
+}
+
+function landscapeTwoPerPage() {
+    pdfjam $1 --nup 2x1 --landscape --quiet --outfile $2
+}
 
 function from_url () {
     #  PARAM:
     #   - OACI code
     #   - output filename
+        EXECUTED=true
     
-
         FILENAME="$2"
 
         if [ -z "${FILENAME}" ]
@@ -68,92 +76,114 @@ D6eqnp/0xH+sZYHMEeWIPD8QMuYzKOAZszPR7lR7jMUORil3MJ+4tj4/gMWubeCHLsYiBwuZywsj
 MBaRggnKKUkjUUQ8E0WQZhERYUgKkheMysBLRRHTPMglSz3f47kkkvt5kQ3h9S7utkMvat2ODPXC
 CB0dXVyP0S+pys1xNgcAAA==
 BASE
-        
-            PAGES=$(pdftk ${FILENAME} dump_data | grep NumberOfPages | sed -e 's/NumberOfPages: //')
-            printf "${PAGES} pages : "
-
-            PAGE1=1
-            PAGE2=3
-            PAGE3=4
-            PAGE4=2
-            SEQUENCES=$((PAGES/4))
-            if [ "$((${PAGES} % 4))" -ne "0" ]
-            then
-                SEQUENCES=$((${SEQUENCES}+1))
-            fi
-            CURRENT=1
-            FILE_LIST=
-
-            for seg in $(seq ${SEQUENCES})
-            do
-                BLANK3=
-                BLANK4=
-
-                if [ "${PAGE1}" -le "${PAGES}" ]
-                then
-                    pdftk "${FILENAME}" cat ${PAGE1} output "/tmp/${CURRENT}_.pdf"
-                    pdfjam --quiet --outfile "/tmp/${CURRENT}.pdf" --paper a5paper "/tmp/${CURRENT}_.pdf"
-                else
-                    cp /tmp/blank.pdf  "/tmp/${CURRENT}.pdf"
-                fi
-                FILE_LIST="${FILE_LIST} /tmp/${CURRENT}.pdf"
-                CURRENT=$((${CURRENT}+1))
-                PAGE1=$((${PAGE1}+4))
-
-                if [ "${PAGE2}" -le "${PAGES}" ]
-                then
-                    pdftk "${FILENAME}" cat ${PAGE2} output "/tmp/${CURRENT}_.pdf"
-                    pdfjam --quiet --outfile "/tmp/${CURRENT}.pdf" --paper a5paper "/tmp/${CURRENT}_.pdf"
-                else
-                    cp /tmp/blank.pdf  "/tmp/${CURRENT}.pdf"
-                fi
-                FILE_LIST="${FILE_LIST} /tmp/${CURRENT}.pdf"
-                CURRENT=$((${CURRENT}+1))
-                PAGE2=$((${PAGE2}+4))
-
-                if [ "${PAGE3}" -le "${PAGES}" ]
-                then
-                    pdftk "${FILENAME}" cat ${PAGE3} output "/tmp/${CURRENT}_.pdf"
-                    pdfjam --quiet --outfile "/tmp/${CURRENT}.pdf" --paper a5paper "/tmp/${CURRENT}_.pdf"
-                else
-                    cp /tmp/blank.pdf  "/tmp/${CURRENT}.pdf"
-                    BLANK3=t
-                fi
-                FILE_LIST="${FILE_LIST} /tmp/${CURRENT}.pdf"
-                CURRENT=$((${CURRENT}+1))
-                PAGE3=$((${PAGE3}+4))
-
-                if [ "${PAGE4}" -le "${PAGES}" ]
-                then
-                    pdftk "${FILENAME}" cat ${PAGE4} output "/tmp/${CURRENT}_.pdf"
-                    pdfjam --quiet --outfile "/tmp/${CURRENT}.pdf" --paper a5paper "/tmp/${CURRENT}_.pdf"
-                else
-                    cp /tmp/blank.pdf  "/tmp/${CURRENT}.pdf"
-                    BLANK4=t
-                fi
-                FILE_LIST="${FILE_LIST} /tmp/${CURRENT}.pdf"
-                CURRENT=$((${CURRENT}+1))
-                PAGE4=$((${PAGE4}+4))
-            done
-
             TMP_A5_FILENAME="/tmp/${FILENAME}_a5.pdf"
             A5_FILENAME="${FILENAME%.*}_a5.pdf"
 
-            pdftk ${FILE_LIST} cat output /tmp/${FILENAME}.pdf
-            pdfjam /tmp/${FILENAME}.pdf --nup 2x1 --landscape --quiet --outfile ${TMP_A5_FILENAME}
+            PAGES=$(pdftk ${FILENAME} dump_data | grep NumberOfPages | sed -e 's/NumberOfPages: //')
+            printf "${PAGES} pages : "
 
-            if [ "${BLANK3}${BLANK4}" == "tt" ]
+            CURRENT=1
+            FILE_LIST=
+
+            if [ ! -z ${VERSO+x} ]
             then
-                pdftk ${TMP_A5_FILENAME} cat 1-r2 output ${A5_FILENAME}
+                PAGE1=1
+                PAGE2=3
+                PAGE3=4
+                PAGE4=2
+                SEQUENCES=$((PAGES/4))
+                if [ "$((${PAGES} % 4))" -ne "0" ]
+                then
+                    SEQUENCES=$((${SEQUENCES}+1))
+                fi
+                
+                for seg in $(seq ${SEQUENCES})
+                do
+                    BLANK3=
+                    BLANK4=
+
+                    if [ "${PAGE1}" -le "${PAGES}" ]
+                    then
+                        pdftk "${FILENAME}" cat ${PAGE1} output "/tmp/${CURRENT}_.pdf"
+                        toA5 "/tmp/${CURRENT}.pdf" "/tmp/${CURRENT}_.pdf"
+                    else
+                        cp /tmp/blank.pdf  "/tmp/${CURRENT}.pdf"
+                    fi
+                    FILE_LIST="${FILE_LIST} /tmp/${CURRENT}.pdf"
+                    CURRENT=$((${CURRENT}+1))
+                    PAGE1=$((${PAGE1}+4))
+
+                    if [ "${PAGE2}" -le "${PAGES}" ]
+                    then
+                        pdftk "${FILENAME}" cat ${PAGE2} output "/tmp/${CURRENT}_.pdf"
+                        toA5 "/tmp/${CURRENT}.pdf" "/tmp/${CURRENT}_.pdf"
+                    else
+                        cp /tmp/blank.pdf  "/tmp/${CURRENT}.pdf"
+                    fi
+                    FILE_LIST="${FILE_LIST} /tmp/${CURRENT}.pdf"
+                    CURRENT=$((${CURRENT}+1))
+                    PAGE2=$((${PAGE2}+4))
+
+                    if [ "${PAGE3}" -le "${PAGES}" ]
+                    then
+                        pdftk "${FILENAME}" cat ${PAGE3} output "/tmp/${CURRENT}_.pdf"
+                        toA5 "/tmp/${CURRENT}.pdf" "/tmp/${CURRENT}_.pdf"
+                    else
+                        cp /tmp/blank.pdf  "/tmp/${CURRENT}.pdf"
+                        BLANK3=t
+                    fi
+                    FILE_LIST="${FILE_LIST} /tmp/${CURRENT}.pdf"
+                    CURRENT=$((${CURRENT}+1))
+                    PAGE3=$((${PAGE3}+4))
+
+                    if [ "${PAGE4}" -le "${PAGES}" ]
+                    then
+                        pdftk "${FILENAME}" cat ${PAGE4} output "/tmp/${CURRENT}_.pdf"
+                        toA5 "/tmp/${CURRENT}.pdf" "/tmp/${CURRENT}_.pdf"
+                    else
+                        cp /tmp/blank.pdf  "/tmp/${CURRENT}.pdf"
+                        BLANK4=t
+                    fi
+                    FILE_LIST="${FILE_LIST} /tmp/${CURRENT}.pdf"
+                    CURRENT=$((${CURRENT}+1))
+                    PAGE4=$((${PAGE4}+4))
+                done
+
+                pdftk ${FILE_LIST} cat output "/tmp/${FILENAME}.pdf"
+                landscapeTwoPerPage "/tmp/${FILENAME}.pdf" "${TMP_A5_FILENAME}"
+
+                if [ "${BLANK3}${BLANK4}" == "tt" ]
+                then
+                    pdftk ${TMP_A5_FILENAME} cat 1-r2 output ${A5_FILENAME}
+                else
+                    cp ${TMP_A5_FILENAME} ${A5_FILENAME}
+                fi
+
             else
+                for PAGE in $(seq ${PAGES})
+                do
+                    pdftk "${FILENAME}" cat ${PAGE} output "/tmp/${CURRENT}_.pdf"
+                    toA5 "/tmp/${CURRENT}.pdf" "/tmp/${CURRENT}_.pdf"
+
+                    FILE_LIST="${FILE_LIST} /tmp/${CURRENT}.pdf"
+                    CURRENT=$((${CURRENT}+1))
+                done
+
+                pdftk ${FILE_LIST} cat output "/tmp/${FILENAME}.pdf"
+                landscapeTwoPerPage "/tmp/${FILENAME}.pdf" "${TMP_A5_FILENAME}"
                 cp ${TMP_A5_FILENAME} ${A5_FILENAME}
             fi
 
+            rm /tmp/blank.pdf
             rm ${FILE_LIST}
             rm /tmp/*_.pdf
             rm /tmp/${FILENAME}.pdf
             rm ${TMP_A5_FILENAME}
-            rm /tmp/blank.pdf
+
+            if [ -z ${KEEP_ORIGINAL+x} ]
+            then
+                rm ${FILENAME}
+            fi
         fi
 
         echo "OK"
@@ -179,7 +209,7 @@ function from_json() {
 }
 
 function help () {
-    echo "vac-a5.sh [--json ./list.json]  [--oaci LFRN] [--a5]"
+    echo "vac-a5.sh [--json ./list.json]  [--oaci LFRN] [--a5] [--a5-verso] [--keep-original]"
     echo "JSON format: [{\"filename\": \"toto.pdf\", \"oaci\": \"LFRN\"}]"
 }
 
@@ -196,6 +226,15 @@ do
         --oaci)
         echo "extracting $2 ..."
         OACI="${OACI} $2"
+        shift
+        ;;
+        --a5-verso)
+        A5=true
+        VERSO=true
+        shift
+        ;;
+        --keep-original)
+        KEEP_ORIGINAL=true
         shift
         ;;
         --a5)
@@ -221,3 +260,5 @@ then
         from_url ${code}
     done 
 fi
+
+if [ -z ${EXECUTED+x} ]; then help; fi

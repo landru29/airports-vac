@@ -21,9 +21,9 @@ if ! [ -x "$(command -v jq)" ]; then
   exit 1
 fi
 
-
-#URL_PREFIX="https://www.sia.aviation-civile.gouv.fr/dvd/eAIP_30_DEC_2021/Atlas-VAC/"
-URL_PREFIX=`curl -qs https://www.sia.aviation-civile.gouv.fr/documents/htmlshow\?f\=dvd/eAIP_27_JAN_2022/Atlas-VAC/home.htm |grep www.sia.aviation-civile.gouv.fr/dvd | sed -e "s/.*https/https/" | sed -e s"%FR/home.htm.*%%"`
+TS=`date +"%s"`
+PAGE_SEARCH=`curl -qs "https://www.sia.aviation-civile.gouv.fr/customer/section/load/?sections=custom_menu&_=${TS}" -H 'Referer: https://www.sia.aviation-civile.gouv.fr/' | jq .custom_menu.menu | awk -F'<li>' '{$1=$1}1' OFS='\n' |grep -i "atlas vac france" | sed -e "s/.*https/https/" | sed -e s"%/home.htm.*%/home.htm%"`
+URL_PREFIX=`curl -qs ${PAGE_SEARCH} |grep www.sia.aviation-civile.gouv.fr/dvd | sed -e "s/.*https/https/" | sed -e s"%FR/home.htm.*%%"`
 
 
 function toA5() {
@@ -50,7 +50,7 @@ function from_url () {
 
         VAC="PDF_AIPparSSection/VAC/AD/AD-2.$1.pdf"
 
-        printf "${FILENAME} => "
+        printf "${FILENAME} [GET ${URL_PREFIX}${VAC}] => "
         if [ "${VAC}" == "null" ]
         then
             printf "[X]"
